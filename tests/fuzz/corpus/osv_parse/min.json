@@ -1,0 +1,1 @@
+{"id":"CVE-FUZZ-1","modified":"2026-01-01T00:00:00Z","affected":[{"package":{"ecosystem":"npm","name":"example"},"versions":["1.0.0"]}]}

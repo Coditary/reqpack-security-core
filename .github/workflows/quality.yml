@@ -1,0 +1,78 @@
+name: Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends clang-format
+
+      - name: Check formatting
+        run: make format-check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential ca-certificates clang clang-tidy cmake curl git pkg-config \
+            libboost-dev libcurl4-openssl-dev libssl-dev libzstd-dev
+
+      - name: Run clang-tidy
+        run: make lint CLANGXX=clang++
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential ca-certificates clang cmake curl git pkg-config \
+            libboost-dev libcurl4-openssl-dev libssl-dev libzstd-dev
+
+      - name: Build and run fuzzers
+        run: make fuzz CLANGXX=clang++ FUZZ_RUNS=8192 FUZZ_MAX_TIME=30
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential ca-certificates cmake curl git pkg-config \
+            libboost-dev libcurl4-openssl-dev libssl-dev libzstd-dev
+
+      - name: Run unit tests
+        run: make test

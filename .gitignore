@@ -1,0 +1,4 @@
+/build/
+/build-*/
+/coverage-summary.txt
+/tests/fuzz/corpus/**/crash-*

@@ -1,0 +1,1 @@
+{"id":"CvE-FUZZ-2","modified":"26-01-010:00Z","affected":[{"package":{"ecosystem":"npm","name":"example"},"versions":["0.0.0"]}]}

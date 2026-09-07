@@ -1,0 +1,10 @@
+# Tab-indented validator sources (ReqPack legacy style)
+src/validator.cpp
+src/validator_prepare.cpp
+src/validator_prompt.cpp
+src/validator_internal.h
+
+# Generated / vendored trees
+build/**
+build-*/**
+_deps/**
