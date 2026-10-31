@@ -52,3 +52,6 @@ std::vector<std::pair<std::string, std::string>> osv_collect_package_keys(const 
 std::optional<OsvMatchResult> osv_match_package(const OsvAdvisory& advisory, const std::string& ecosystem,
                                                 const std::string& name, const std::string& version,
                                                 const VersionComparatorSpec& comparator = {});
+std::optional<std::string> osv_first_fixed_version_for_package(const OsvAdvisory& advisory,
+                                                               const std::string& ecosystem,
+                                                               const std::string& name);

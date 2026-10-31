@@ -1,13 +1,9 @@
 #include "rqp/security/security_gateway_service.h"
 
+#include "rqp/security/security_log.h"
 #include "rqp/security/security_paths.h"
-
-#include "rqp/security/gh_advisory_vulnerability_sync_service.h"
-#include "rqp/security/osv_core.h"
-#include "rqp/security/snyk_vulnerability_sync_service.h"
-#include "rqp/security/trivy_vulnerability_sync_service.h"
+#include "rqp/security/sync_backend_registry.h"
 #include "rqp/security/vulnerability_database.h"
-#include "rqp/security/vulnerability_sync_service.h"
 
 #include <algorithm>
 #include <cctype>
@@ -30,17 +26,9 @@ std::string package_index_path_for_ecosystem(const SecuritySettings& config, con
     return (root / ecosystem).string();
 }
 
-constexpr const char* kDefaultOsvFeedUrl = "https://storage.googleapis.com/osv-vulnerabilities";
-
-std::string resolve_osv_feed_url(const SecuritySettings& config, const std::string& backendFeedUrl) {
-    const std::string& topLevel = config.security.osvFeedUrl;
-    if (!backendFeedUrl.empty()) {
-        if (backendFeedUrl == kDefaultOsvFeedUrl && topLevel != kDefaultOsvFeedUrl) {
-            return topLevel;
-        }
-        return backendFeedUrl;
-    }
-    return topLevel;
+bool findings_contain_sync_error(const std::vector<ValidationFinding>& findings) {
+    return std::any_of(findings.begin(), findings.end(),
+                       [](const ValidationFinding& finding) { return finding.kind == "sync_error"; });
 }
 
 } // namespace
@@ -105,7 +93,7 @@ std::set<std::string> SecurityGatewayService::resolveGatewayBackends(const std::
     }
     if (this->config.security.gateways.empty()) {
         if (discoveredProviders.empty()) {
-            return {"osv"};
+            return {rqp::sync_backend::kOsv};
         }
         return discoveredProviders;
     }
@@ -113,7 +101,7 @@ std::set<std::string> SecurityGatewayService::resolveGatewayBackends(const std::
     if (it == this->config.security.gateways.end()) {
         if (normalizedGateway == this->normalizeGatewayName(this->config.security.defaultGateway)) {
             if (discoveredProviders.empty()) {
-                return {"osv"};
+                return {rqp::sync_backend::kOsv};
             }
             return discoveredProviders;
         }
@@ -126,12 +114,8 @@ std::set<std::string> SecurityGatewayService::resolveGatewayBackends(const std::
     std::set<std::string> backends;
     for (const std::string& backend : it->second.backends) {
         if (!backend.empty()) {
-            backends.insert(to_lower_copy(backend));
+            backends.insert(backend);
         }
-    }
-    backends.insert(discoveredProviders.begin(), discoveredProviders.end());
-    if (backends.empty()) {
-        backends.insert("osv");
     }
     return backends;
 }
@@ -188,11 +172,7 @@ std::set<std::string> SecurityGatewayService::resolvePackageEcosystems(const std
 std::vector<ValidationFinding> SecurityGatewayService::ensureEcosystemsReady(const std::set<std::string>& ecosystems,
                                                                              const std::string& gateway,
                                                                              bool forceRefresh) const {
-    if (!this->config.security.enabled) {
-        return {};
-    }
-
-    if (ecosystems.empty()) {
+    if (!this->config.security.enabled || ecosystems.empty()) {
         return {};
     }
 
@@ -209,76 +189,63 @@ std::vector<ValidationFinding> SecurityGatewayService::ensureEcosystemsReady(con
 
     std::vector<ValidationFinding> findings;
     bool anySuccess = false;
-    for (const std::string& backend : backends) {
-        SecuritySettings backendConfig = this->config;
-        if (const auto backendIt = this->config.security.backends.find(backend);
-            backendIt != this->config.security.backends.end()) {
-            if (backend == "osv") {
-                backendConfig.security.osvFeedUrl = resolve_osv_feed_url(this->config, backendIt->second.feedUrl);
-                backendConfig.security.osvRefreshMode = backendIt->second.refreshMode;
-                backendConfig.security.osvRefreshIntervalSeconds = backendIt->second.refreshIntervalSeconds;
-                if (!backendIt->second.overlayPath.empty()) {
-                    backendConfig.security.osvOverlayPath = backendIt->second.overlayPath;
-                }
-            } else if (backend == "gh-advisory") {
-                backendConfig.security.backends[backend].feedUrl = backendIt->second.feedUrl;
-                backendConfig.security.backends[backend].refreshMode = backendIt->second.refreshMode;
-                backendConfig.security.backends[backend].refreshIntervalSeconds =
-                    backendIt->second.refreshIntervalSeconds;
-            }
-        }
-        if (forceRefresh && (backend == "osv" || backend == "gh-advisory")) {
-            backendConfig.security.osvRefreshMode = OsvRefreshMode::ALWAYS;
-            if (backend == "gh-advisory") {
-                backendConfig.security.backends[backend].refreshMode = OsvRefreshMode::ALWAYS;
-            }
+
+    for (const std::string& backendId : backends) {
+        const SyncBackendRegistration* backend = find_sync_backend(backendId);
+        if (backend == nullptr) {
+            findings.push_back(ValidationFinding{
+                .kind = "sync_warning",
+                .source = backendId,
+                .severity = "low",
+                .message = "security backend is not available in this build",
+            });
+            anySuccess = true;
+            continue;
         }
 
-        if (backend == "gh-advisory") {
-            GhAdvisoryVulnerabilitySyncService syncService(ecosystems, backendConfig);
-            std::vector<ValidationFinding> backendFindings = syncService.ensureReady(forceRefresh);
-            const bool failed =
-                std::any_of(backendFindings.begin(), backendFindings.end(),
-                            [](const ValidationFinding& finding) { return finding.kind == "sync_error"; });
-            if (!failed) {
+        SecuritySettings backendConfig = this->config;
+        if (backend->mergeGatewayBackendConfig) {
+            backend->mergeGatewayBackendConfig(backendConfig, this->config, backendId);
+        }
+        if (forceRefresh && backend->applyForceRefresh) {
+            backend->applyForceRefresh(backendConfig, backendId);
+        }
+
+        if (backend->scope == SyncBackendScope::MultiEcosystem) {
+            SyncBackendContext ctx{
+                .database = nullptr,
+                .metadataProvider = this->metadataProvider,
+                .config = backendConfig,
+                .ecosystems = ecosystems,
+                .forceRefresh = forceRefresh,
+            };
+            const std::vector<ValidationFinding> backendFindings = backend->run(ctx);
+            if (!findings_contain_sync_error(backendFindings)) {
                 anySuccess = true;
             }
             findings.insert(findings.end(), backendFindings.begin(), backendFindings.end());
             continue;
         }
 
-        std::vector<ValidationFinding> backendFindings;
         for (const std::string& ecosystem : ecosystems) {
+            security_log_stdout("security sync: backend=" + backendId + " ecosystem=" + ecosystem);
             SecuritySettings ecosystemConfig = backendConfig;
             ecosystemConfig.security.osvDatabasePath = package_index_path_for_ecosystem(backendConfig, ecosystem);
             VulnerabilityDatabase database(ecosystemConfig);
-            std::vector<ValidationFinding> syncFindings;
-            if (backend == "osv") {
-                VulnerabilitySyncService syncService(&database, this->metadataProvider, ecosystemConfig, {ecosystem});
-                syncFindings = syncService.ensureReady();
-            } else if (backend == "snyk") {
-                SnykVulnerabilitySyncService syncService(&database, {ecosystem}, ecosystemConfig);
-                syncFindings = syncService.ensureReady(forceRefresh);
-            } else if (backend == "trivy") {
-                TrivyVulnerabilitySyncService syncService(&database, {ecosystem}, ecosystemConfig);
-                syncFindings = syncService.ensureReady(forceRefresh);
-            } else {
-                syncFindings.push_back(ValidationFinding{
-                    .kind = "sync_warning",
-                    .source = backend,
-                    .severity = "low",
-                    .message = "security backend not implemented yet",
-                });
-            }
-            const bool failed =
-                std::any_of(syncFindings.begin(), syncFindings.end(),
-                            [](const ValidationFinding& finding) { return finding.kind == "sync_error"; });
-            if (!failed) {
+
+            SyncBackendContext ctx{
+                .database = &database,
+                .metadataProvider = this->metadataProvider,
+                .config = ecosystemConfig,
+                .ecosystems = {ecosystem},
+                .forceRefresh = forceRefresh,
+            };
+            const std::vector<ValidationFinding> syncFindings = backend->run(ctx);
+            if (!findings_contain_sync_error(syncFindings)) {
                 anySuccess = true;
             }
-            backendFindings.insert(backendFindings.end(), syncFindings.begin(), syncFindings.end());
+            findings.insert(findings.end(), syncFindings.begin(), syncFindings.end());
         }
-        findings.insert(findings.end(), backendFindings.begin(), backendFindings.end());
     }
 
     if (!anySuccess && !ecosystems.empty()) {
@@ -311,7 +278,14 @@ SecurityGatewayService::executeGatewayRequest(ActionType action, const std::stri
 
     const std::string gatewayName = gateway.empty() ? this->config.security.defaultGateway : gateway;
     const std::set<std::string> backends = this->resolveGatewayBackends(gatewayName);
-    const bool allowRawGatewayEcosystems = backends.size() == 1 && backends.contains("gh-advisory");
+    bool allowRawGatewayEcosystems = backends.size() == 1;
+    if (allowRawGatewayEcosystems) {
+        const SyncBackendRegistration* backend = find_sync_backend(*backends.begin());
+        allowRawGatewayEcosystems =
+            backend != nullptr && backend->allowsRawPackageNamesAsEcosystem;
+    } else {
+        allowRawGatewayEcosystems = false;
+    }
 
     std::set<std::string> ecosystems;
     for (const Package& package : packages) {

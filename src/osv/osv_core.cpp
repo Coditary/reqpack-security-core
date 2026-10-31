@@ -457,6 +457,23 @@ std::vector<std::pair<std::string, std::string>> osv_collect_package_keys(const 
     return keys;
 }
 
+std::optional<std::string> osv_first_fixed_version_for_package(const OsvAdvisory& advisory,
+                                                               const std::string& ecosystem,
+                                                               const std::string& name) {
+    const std::string normalizedName = osv_normalize_package_name(name);
+    for (const OsvAffectedPackage& package : advisory.affected) {
+        if (package.ecosystem != ecosystem || osv_normalize_package_name(package.name) != normalizedName) {
+            continue;
+        }
+        for (const OsvRangeEvent& event : package.events) {
+            if (!event.fixed.empty()) {
+                return event.fixed;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
 std::optional<OsvMatchResult> osv_match_package(const OsvAdvisory& advisory, const std::string& ecosystem,
                                                 const std::string& name, const std::string& version,
                                                 const VersionComparatorSpec& comparator) {

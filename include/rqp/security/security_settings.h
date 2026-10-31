@@ -30,3 +30,6 @@ struct SecuritySettings {
 
 SecuritySettings default_security_settings();
 SecuritySettings ecosystem_db_settings(const SecuritySettings& settings, const std::string& ecosystem);
+
+/// Applies named preset values onto `security`. Returns false if preset name is unknown.
+bool apply_security_preset(SecurityConfig& security, const std::string& preset);

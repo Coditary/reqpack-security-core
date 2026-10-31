@@ -9,7 +9,7 @@ Standalone C++ library for vulnerability scanning, OSV database sync, security g
 
 - **OSV matching** — parse advisories, match packages, compare version ranges
 - **Vulnerability databases** — LMDB-backed storage with indexed lookup paths
-- **Sync backends** — OSV, GitHub Advisory, Snyk CSV, and Trivy DB ingestion
+- **Sync backends** — pluggable registry (`sync_backend_registry.h`); OSV plus optional GitHub Advisory, Snyk, Trivy
 - **Plan validation** — gate installs/updates against configured severity thresholds
 - **Security gateway** — orchestrate sync, validation, and host callbacks
 - **Host hooks** — archive extraction, logging, and stdout redirection for embedding
@@ -38,6 +38,19 @@ make build
 make test          # 110 unit tests
 make qa            # format-check + lint + test + fuzz
 ```
+
+### Optional sync backends (CMake)
+
+Default build includes all built-in backends. Minimal OSV-only library:
+
+```bash
+cmake -S . -B build \
+  -DRQP_SECURITY_BACKEND_GH_ADVISORY=OFF \
+  -DRQP_SECURITY_BACKEND_SNYK=OFF \
+  -DRQP_SECURITY_BACKEND_TRIVY=OFF
+```
+
+Backend IDs for config/gateway: `rqp::sync_backend::kOsv`, `kGhAdvisory`, `kSnyk`, `kTrivy` in `sync_backend_registry.h`.
 
 CMake equivalent:
 

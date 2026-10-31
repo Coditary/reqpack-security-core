@@ -316,7 +316,7 @@ TEST_CASE("validator prompt output truncates long finding lists", "[unit][valida
     config.security.severityThreshold = SeverityLevel::CRITICAL;
 
     PromptingValidator validator(nullptr, config);
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 13; ++i) {
         validator.findings.push_back(make_finding("low", static_cast<double>(i)));
     }
 
@@ -329,7 +329,9 @@ TEST_CASE("validator prompt output truncates long finding lists", "[unit][valida
     const std::size_t bulletCount =
         std::count_if(logCapture.stdoutMessages.begin(), logCapture.stdoutMessages.end(),
                       [](const std::string& message) { return message.rfind("- ", 0) == 0; });
-    CHECK(bulletCount == 5);
+    CHECK(bulletCount == 12);
+    CHECK(std::any_of(logCapture.stdoutMessages.begin(), logCapture.stdoutMessages.end(),
+                      [](const std::string& message) { return message.find("more; run `rqp audit`") != std::string::npos; }));
 }
 
 TEST_CASE("validator denies prompted run when interactive mode is disabled", "[unit][validator][validate]") {

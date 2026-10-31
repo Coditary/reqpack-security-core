@@ -27,6 +27,7 @@ TEST_CASE("trivy sync service reports missing helper binary", "[unit][trivy][syn
 
     SecuritySettings config = test_security_settings();
     config.security.indexPath = (tempDir.path() / "index").string();
+    config.security.osvDatabasePath = (tempDir.path() / "db").string();
     config.security.cachePath = (tempDir.path() / "cache").string();
     config.security.backends["trivy"].dbRepositories = {"file://" + trivyRoot.string()};
     config.security.backends["trivy"].helperPath = (tempDir.path() / "missing-helper").string();

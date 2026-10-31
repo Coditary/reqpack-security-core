@@ -32,6 +32,8 @@ struct SecurityBackendConfig {
 };
 
 struct SecurityConfig {
+    /// Optional preset applied after config load: dev | ci | strict (empty = custom).
+    std::string preset{};
     bool enabled{false};
     bool autoFetch{true};
     bool requireThinLayer{false};
@@ -57,6 +59,10 @@ struct SecurityConfig {
     UnsafeAction onUnresolvedVersion{UnsafeAction::CONTINUE};
     bool strictEcosystemMapping{false};
     bool includeWithdrawnInReport{false};
+    /// When true, `rqp audit --output` still exits with code 1 if findings exist (CI-friendly).
+    bool auditFailOnFindings{false};
+    /// Scan parallelism: 0 = use hardware concurrency, 1 = sequential, N = fixed worker count.
+    std::size_t scanConcurrency{0};
 };
 
 inline std::string to_string(SeverityLevel severity) {

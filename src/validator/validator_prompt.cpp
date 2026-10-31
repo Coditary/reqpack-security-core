@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <string>
 
 namespace {
 
@@ -53,7 +54,8 @@ std::vector<ValidationFinding> disposition_findings(const Graph& graph, const st
 
 bool Validator::requestUserDecision(const std::vector<ValidationFinding>& findings) const {
 	
-	security_log_stdout("unsafe findings require confirmation:");
+	security_log_stdout("unsafe findings require confirmation (" + std::to_string(findings.size()) + " total):");
+	constexpr std::size_t kMaxPromptFindings = 12;
 	std::size_t shown = 0;
 	for (const ValidationFinding& finding : findings) {
 		std::string message = finding.message.empty() ? finding.id : finding.message;
@@ -65,13 +67,19 @@ bool Validator::requestUserDecision(const std::vector<ValidationFinding>& findin
 		}
 		security_log_stdout("- " + message);
 		++shown;
-		if (shown >= 5) {
+		if (shown >= kMaxPromptFindings) {
 			break;
 		}
 	}
+	if (findings.size() > kMaxPromptFindings) {
+		security_log_stdout("... " + std::to_string(findings.size() - kMaxPromptFindings) +
+		                    " more; run `rqp audit` on the same packages for the full list.");
+	}
 
 	if (!this->config.interaction.interactive) {
-		security_log_diagnostic("security", "interactive mode is disabled; refusing to continue.", "Re-run without `--non-interactive`, or switch `security.onUnsafe` to `abort` or `allow`.");
+		security_log_diagnostic("security", "interactive mode is disabled; refusing to continue.",
+		                        "Re-run without `--non-interactive`, set `security.onUnsafe` to `abort`/`continue`, or "
+		                        "use `--fail-on-unresolved-version` / audit first.");
 		security_flush();
 		return false;
 	}

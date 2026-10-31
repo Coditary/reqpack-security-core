@@ -28,6 +28,16 @@ option(RQP_SECURITY_CORE_BUILD_FUZZERS
     OFF
 )
 
+option(RQP_SECURITY_CORE_BUILD_STRESS_TESTS
+    "Build performance stress harness (ctest label stress; not run with default unit discovery)"
+    ${RQP_SECURITY_CORE_BUILD_TESTS}
+)
+
+option(RQP_SECURITY_BACKEND_OSV "Register OSV vulnerability sync backend" ON)
+option(RQP_SECURITY_BACKEND_GH_ADVISORY "Register GitHub Advisory sync backend" ON)
+option(RQP_SECURITY_BACKEND_SNYK "Register Snyk sync backend" ON)
+option(RQP_SECURITY_BACKEND_TRIVY "Register Trivy DB sync backend" ON)
+
 find_package(CURL REQUIRED)
 find_package(Boost REQUIRED)
 find_package(OpenSSL REQUIRED)
@@ -53,26 +63,77 @@ if(NOT TARGET lmdb)
 endif()
 
 set(RQP_SECURITY_CORE_SOURCES
-    src/security_paths.cpp
-    src/security_log.cpp
-    src/security_settings.cpp
-    src/security_network.cpp
-    src/security_process.cpp
-    src/pipe_helpers.cpp
-    src/version_compare.cpp
-    src/gh_advisory_vulnerability_sync_service.cpp
-    src/osv_core.cpp
-    src/snyk_vulnerability_sync_service.cpp
-    src/trivy_vulnerability_sync_service.cpp
-    src/security_gateway_service.cpp
-    src/validator.cpp
-    src/validator_prepare.cpp
-    src/validator_prompt.cpp
-    src/validator_core.cpp
-    src/vulnerability_database.cpp
-    src/vulnerability_matcher.cpp
-    src/vulnerability_sync_service.cpp
+    src/detail/sync_common.cpp
+    src/json_util.cpp
+    src/detail/sync_refresh.cpp
+    src/infra/security_paths.cpp
+    src/infra/security_log.cpp
+    src/infra/security_settings.cpp
+    src/infra/security_status.cpp
+    src/infra/security_network.cpp
+    src/infra/security_process.cpp
+    src/infra/pipe_helpers.cpp
+    src/version/version_compare.cpp
+    src/osv/osv_core.cpp
+    src/sync/sync_backend_registry.cpp
+    src/sync/sync_backend_support.cpp
+    src/sync/backends/register_builtin_backends.cpp
+    src/gateway/security_gateway_service.cpp
+    src/validator/validator.cpp
+    src/validator/validator_prepare.cpp
+    src/validator/validator_prompt.cpp
+    src/validator/validator_core.cpp
+    src/database/vulnerability_database_storage.cpp
+    src/database/vulnerability_database.cpp
+    src/matching/vulnerability_matcher.cpp
+    src/sync/vulnerability_sync_service.cpp
+    src/matching/sbom_inventory.cpp
+    src/exchange/pipeline.cpp
+    src/exchange/registry.cpp
+    src/exchange/transform_identity.cpp
+    src/exchange/transform_scan.cpp
+    src/exchange/codec_sbom.cpp
+    src/exchange/envelope.cpp
 )
+
+if(RQP_SECURITY_BACKEND_OSV)
+    list(APPEND RQP_SECURITY_CORE_SOURCES src/sync/backends/register_osv.cpp)
+else()
+    message(FATAL_ERROR "RQP_SECURITY_BACKEND_OSV=OFF is not supported (OSV is the default data source)")
+endif()
+
+if(RQP_SECURITY_BACKEND_GH_ADVISORY)
+    list(APPEND RQP_SECURITY_CORE_SOURCES
+        src/sync/gh_advisory_vulnerability_sync_service.cpp
+        src/sync/backends/register_gh_advisory.cpp
+    )
+    list(APPEND RQP_SECURITY_BACKEND_DEFINES RQP_SECURITY_HAVE_BACKEND_GH_ADVISORY)
+endif()
+
+if(RQP_SECURITY_BACKEND_SNYK)
+    list(APPEND RQP_SECURITY_CORE_SOURCES
+        src/sync/snyk/snyk_sync_http.cpp
+        src/sync/snyk/snyk_sync_csv.cpp
+        src/sync/snyk/snyk_sync_export.cpp
+        src/sync/snyk/snyk_sync_import.cpp
+        src/sync/snyk/snyk_vulnerability_sync_service.cpp
+        src/sync/backends/register_snyk.cpp
+    )
+    list(APPEND RQP_SECURITY_BACKEND_DEFINES RQP_SECURITY_HAVE_BACKEND_SNYK)
+endif()
+
+if(RQP_SECURITY_BACKEND_TRIVY)
+    list(APPEND RQP_SECURITY_CORE_SOURCES
+        src/sync/trivy/trivy_sync_misc.cpp
+        src/sync/trivy/trivy_sync_http.cpp
+        src/sync/trivy/trivy_sync_oci.cpp
+        src/sync/trivy/trivy_sync_runtime.cpp
+        src/sync/trivy/trivy_sync_import.cpp
+        src/sync/trivy/trivy_vulnerability_sync_service.cpp
+        src/sync/backends/register_trivy.cpp
+    )
+    list(APPEND RQP_SECURITY_BACKEND_DEFINES RQP_SECURITY_HAVE_BACKEND_TRIVY)
+endif()
 
 add_library(reqpack_security_core STATIC ${RQP_SECURITY_CORE_SOURCES})
 add_library(ReqPack::SecurityCore ALIAS reqpack_security_core)
@@ -81,6 +142,9 @@ target_include_directories(reqpack_security_core
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/validator
 )
 
 target_link_libraries(reqpack_security_core
@@ -96,6 +160,8 @@ target_link_libraries(reqpack_security_core
 target_compile_definitions(reqpack_security_core
     PUBLIC
         RQP_SECURITY_CORE_BUILD
+    PRIVATE
+        ${RQP_SECURITY_BACKEND_DEFINES}
 )
 
 if(RQP_SECURITY_CORE_ENABLE_COVERAGE OR REQPACK_ENABLE_COVERAGE)
@@ -132,6 +198,8 @@ if(RQP_SECURITY_CORE_BUILD_TESTS)
         tests/unit/version_compare_tests.cpp
         tests/unit/vulnerability_database_tests.cpp
         tests/unit/vulnerability_sync_service_tests.cpp
+        tests/unit/sbom_inventory_tests.cpp
+        tests/unit/exchange_pipeline_tests.cpp
     )
 
     add_executable(security_core_unit_tests
@@ -161,6 +229,41 @@ if(RQP_SECURITY_CORE_BUILD_TESTS)
 
     include(${catch2_SOURCE_DIR}/contrib/Catch.cmake)
     catch_discover_tests(security_core_unit_tests TEST_PREFIX "security::")
+
+    if(RQP_SECURITY_CORE_BUILD_STRESS_TESTS)
+        add_executable(security_core_stress_tests
+            tests/stress/stress_main.cpp
+            tests/stress/stress_perf_tests.cpp
+        )
+
+        target_include_directories(security_core_stress_tests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/stress
+        )
+
+        target_link_libraries(security_core_stress_tests PRIVATE
+            Catch2::Catch2
+            reqpack_security_core
+        )
+
+        if(RQP_SECURITY_CORE_ENABLE_COVERAGE OR REQPACK_ENABLE_COVERAGE)
+            if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+                target_compile_options(security_core_stress_tests PRIVATE -O0 -g --coverage)
+                target_link_options(security_core_stress_tests PRIVATE --coverage)
+            endif()
+        endif()
+
+        add_dependencies(security_core_test_targets security_core_stress_tests)
+
+        add_test(
+            NAME security_stress_perf
+            COMMAND security_core_stress_tests
+        )
+        set_tests_properties(security_stress_perf PROPERTIES
+            LABELS "stress"
+            TIMEOUT 900
+        )
+    endif()
 endif()
 
 if(RQP_SECURITY_CORE_BUILD_FUZZERS)
