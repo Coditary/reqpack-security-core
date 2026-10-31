@@ -1,5 +1,6 @@
 #include "rqp/security/sbom_inventory.h"
 #include "rqp/security/exchange.h"
+#include "rqp/security/cyclonedx.h"
 
 #include "detail/sync_common.h"
 
@@ -113,37 +114,11 @@ EmitResult emit_reqpack_sbom_json(const ExchangeDoc& document) {
 
 EmitResult emit_cyclonedx(const ExchangeDoc& document, const ExchangeCtx& context) {
     EmitResult result;
-    std::ostringstream stream;
-    stream << "{\n";
-    stream << "  \"bomFormat\": \"CycloneDX\",\n";
-    stream << "  \"specVersion\": \"1.5\",\n";
-    stream << "  \"version\": 1,\n";
-    stream << "  \"components\": [\n";
-    const std::vector<Graph::vertex_descriptor> vertices = ordered_vertices(document.graph);
-    for (std::size_t index = 0; index < vertices.size(); ++index) {
-        const Package& package = document.graph[vertices[index]];
-        stream << "    {\n";
-        stream << "      \"type\": \"library\",\n";
-        stream << "      \"bom-ref\": \"" << json_escape(component_ref(package)) << "\",\n";
-        stream << "      \"name\": \"" << json_escape(display_name(package)) << "\"";
-        if (!package.version.empty()) {
-            stream << ",\n      \"version\": \"" << json_escape(package.version) << "\"";
-        }
-        const std::string purl = purl_for(package, context.metadataProvider);
-        if (!purl.empty()) {
-            stream << ",\n      \"purl\": \"" << json_escape(purl) << "\"";
-        }
-        stream << ",\n      \"properties\": [\n";
-        stream << "        {\"name\": \"reqpack:system\", \"value\": \"" << json_escape(package.system) << "\"}\n";
-        stream << "      ]\n";
-        stream << "    }";
-        if (index + 1 < vertices.size()) {
-            stream << ',';
-        }
-        stream << '\n';
+    try {
+        result.payload = rqp_emit_cyclonedx_inventory_json(document.graph, context.metadataProvider, false);
+    } catch (const std::exception& error) {
+        result.error = error.what();
     }
-    stream << "  ]\n}";
-    result.payload = stream.str();
     return result;
 }
 

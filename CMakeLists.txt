@@ -43,8 +43,28 @@ find_package(Boost REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_library(RQP_SECURITY_ZSTD_LIBRARY NAMES zstd REQUIRED)
 
+find_program(RQP_RUSTC rustc)
+if(NOT RQP_RUSTC)
+    message(FATAL_ERROR "rustc is required to build reqpack-security-core (CycloneDX via rust/cyclonedx_ffi)")
+endif()
+
+FetchContent_Declare(
+    Corrosion
+    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+    GIT_TAG v0.5.1
+)
+FetchContent_MakeAvailable(Corrosion)
+
+corrosion_import_crate(
+    MANIFEST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/rust/cyclonedx_ffi/Cargo.toml
+    CRATES rqp_cyclonedx_ffi
+)
+
+if(NOT TARGET rqp_cyclonedx_ffi)
+    message(FATAL_ERROR "Failed to import rqp_cyclonedx_ffi Rust crate")
+endif()
+
 if(NOT TARGET lmdb)
-    include(FetchContent)
     FetchContent_Declare(
         lmdb
         GIT_REPOSITORY https://github.com/LMDB/lmdb.git
@@ -94,6 +114,7 @@ set(RQP_SECURITY_CORE_SOURCES
     src/exchange/transform_scan.cpp
     src/exchange/codec_sbom.cpp
     src/exchange/envelope.cpp
+    src/cyclonedx/cyclonedx_service.cpp
 )
 
 if(RQP_SECURITY_BACKEND_OSV)
@@ -155,6 +176,8 @@ target_link_libraries(reqpack_security_core
         OpenSSL::Crypto
         ${RQP_SECURITY_ZSTD_LIBRARY}
         lmdb
+    PRIVATE
+        rqp_cyclonedx_ffi
 )
 
 target_compile_definitions(reqpack_security_core
