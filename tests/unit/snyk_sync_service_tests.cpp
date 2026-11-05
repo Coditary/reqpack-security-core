@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "rqp/security/snyk_vulnerability_sync_service.h"
 #include "rqp/security/vulnerability_database.h"
+#include "sync/snyk/snyk_vulnerability_sync_service.h"
 #include "test_helpers.h"
 
 TEST_CASE("snyk sync service imports maven advisories from file-backed api fixtures", "[unit][snyk][sync]") {

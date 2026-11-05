@@ -1,104 +1,12 @@
 #include "validator_internal.h"
 
-#include "rqp/security/security_log.h"
-
-#include <boost/graph/graph_traits.hpp>
-
-#include <algorithm>
-#include <cctype>
-#include <iostream>
-#include <string>
-
-namespace {
-
-bool graph_contains_only_remove_actions(const Graph& graph) {
-	auto [vertex, vertexEnd] = boost::vertices(graph);
-	if (vertex == vertexEnd) {
-		return false;
-	}
-
-	for (; vertex != vertexEnd; ++vertex) {
-		if (graph[*vertex].action != ActionType::REMOVE) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-std::string to_lower_copy(std::string value) {
-	std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
-		return static_cast<char>(std::tolower(c));
-	});
-	return value;
-}
-
-}  // namespace
-
-namespace validator_internal {
-
-std::vector<ValidationFinding> disposition_findings(const Graph& graph, const std::vector<ValidationFinding>& findings) {
-	std::vector<ValidationFinding> filtered;
-	filtered.reserve(findings.size());
-	const bool removeOnlyGraph = graph_contains_only_remove_actions(graph);
-	for (const ValidationFinding& finding : findings) {
-		if (finding.kind == "vulnerability" && (removeOnlyGraph || finding.package.action == ActionType::REMOVE)) {
-			continue;
-		}
-		filtered.push_back(finding);
-	}
-	return filtered;
-}
-
-}  // namespace validator_internal
+#include "app/policy_decision_console.h"
 
 bool Validator::requestUserDecision(const std::vector<ValidationFinding>& findings) const {
-	
-	security_log_stdout("unsafe findings require confirmation (" + std::to_string(findings.size()) + " total):");
-	constexpr std::size_t kMaxPromptFindings = 12;
-	std::size_t shown = 0;
-	for (const ValidationFinding& finding : findings) {
-		std::string message = finding.message.empty() ? finding.id : finding.message;
-		if (!finding.source.empty()) {
-			message += " [" + finding.source + "]";
-		}
-		if (!finding.package.system.empty() && !finding.package.name.empty()) {
-			message += " [" + finding.package.system + ":" + finding.package.name + "]";
-		}
-		security_log_stdout("- " + message);
-		++shown;
-		if (shown >= kMaxPromptFindings) {
-			break;
-		}
-	}
-	if (findings.size() > kMaxPromptFindings) {
-		security_log_stdout("... " + std::to_string(findings.size() - kMaxPromptFindings) +
-		                    " more; run `rqp audit` on the same packages for the full list.");
-	}
+    if (this->config.policyDecisionHandler != nullptr) {
+        return this->config.policyDecisionHandler->onPolicyViolation(findings) == PolicyDecision::Allow;
+    }
 
-	if (!this->config.interaction.interactive) {
-		security_log_diagnostic("security", "interactive mode is disabled; refusing to continue.",
-		                        "Re-run without `--non-interactive`, set `security.onUnsafe` to `abort`/`continue`, or "
-		                        "use `--fail-on-unresolved-version` / audit first.");
-		security_flush();
-		return false;
-	}
-
-	security_log_stdout("Continue? [y/N]");
-	security_flush();
-	std::string answer;
-	if (!std::getline(std::cin, answer)) {
-		security_log_stdout("aborted.");
-		security_flush();
-		return false;
-	}
-
-	const std::string normalizedAnswer = to_lower_copy(answer);
-	if (normalizedAnswer == "y" || normalizedAnswer == "yes") {
-		return true;
-	}
-
-	security_log_stdout("aborted.");
-	security_flush();
-	return false;
+    const ConsolePromptDecisionHandler consoleHandler(this->config);
+    return consoleHandler.onPolicyViolation(findings) == PolicyDecision::Allow;
 }

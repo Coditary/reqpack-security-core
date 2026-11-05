@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <string>
 
-#include "rqp/security/trivy_vulnerability_sync_service.h"
+#include "sync/trivy/trivy_vulnerability_sync_service.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     if (data == nullptr || size == 0 || size > (1U << 18)) {

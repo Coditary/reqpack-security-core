@@ -43,7 +43,11 @@ jobs:
             libboost-dev libcurl4-openssl-dev libssl-dev libzstd-dev
 
       - name: Run clang-tidy
-        run: make lint CLANGXX=clang++
+        run: |
+          bash .github/scripts/install-rust-toolchain.sh
+          # shellcheck disable=SC1091
+          source "${CARGO_HOME:-$HOME/.cargo}/env"
+          make lint CLANGXX=clang++
 
   fuzz:
     runs-on: ubuntu-latest
@@ -56,10 +60,15 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             build-essential ca-certificates clang cmake curl git pkg-config \
+            libclang-18-dev libclang-rt-18-dev \
             libboost-dev libcurl4-openssl-dev libssl-dev libzstd-dev
 
       - name: Build and run fuzzers
-        run: make fuzz CLANGXX=clang++ FUZZ_RUNS=8192 FUZZ_MAX_TIME=30
+        run: |
+          bash .github/scripts/install-rust-toolchain.sh
+          # shellcheck disable=SC1091
+          source "${CARGO_HOME:-$HOME/.cargo}/env"
+          make fuzz CLANGXX=clang++ FUZZ_RUNS=8192 FUZZ_MAX_TIME=30 FUZZ_RSS_LIMIT_MB=2048
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -75,4 +84,8 @@ jobs:
             libboost-dev libcurl4-openssl-dev libssl-dev libzstd-dev
 
       - name: Run unit tests
-        run: make test
+        run: |
+          bash .github/scripts/install-rust-toolchain.sh
+          # shellcheck disable=SC1091
+          source "${CARGO_HOME:-$HOME/.cargo}/env"
+          make test

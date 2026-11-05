@@ -330,8 +330,10 @@ TEST_CASE("validator prompt output truncates long finding lists", "[unit][valida
         std::count_if(logCapture.stdoutMessages.begin(), logCapture.stdoutMessages.end(),
                       [](const std::string& message) { return message.rfind("- ", 0) == 0; });
     CHECK(bulletCount == 12);
-    CHECK(std::any_of(logCapture.stdoutMessages.begin(), logCapture.stdoutMessages.end(),
-                      [](const std::string& message) { return message.find("more; run `rqp audit`") != std::string::npos; }));
+    CHECK(
+        std::any_of(logCapture.stdoutMessages.begin(), logCapture.stdoutMessages.end(), [](const std::string& message) {
+            return message.find("more; run `rqp audit`") != std::string::npos;
+        }));
 }
 
 TEST_CASE("validator denies prompted run when interactive mode is disabled", "[unit][validator][validate]") {

@@ -65,8 +65,8 @@ ExchangeView doc_to_view(const ExchangeDoc& document, WireFormat sourceFormat, c
 
 DecodeResult decode_to_view(const std::string& inputPayload, WireFormat inputFormat, const ExchangeCtx& context = {});
 
-DecodeResult decode_to_view(const std::string& inputPayload, WireFormat inputFormat, const IExchangeTransform& transform,
-                            const ExchangeCtx& context = {});
+DecodeResult decode_to_view(const std::string& inputPayload, WireFormat inputFormat,
+                            const IExchangeTransform& transform, const ExchangeCtx& context = {});
 
 std::string view_to_json(const ExchangeView& view);
 
@@ -77,7 +77,8 @@ struct PipelineViewResult {
 
 PipelineViewResult run_pipeline_with_view(const std::string& inputPayload, WireFormat inputFormat,
                                           const IExchangeIn& input, const IExchangeTransform& transform,
-                                          const IExchangeOut& output, WireFormat outputFormat, const ExchangeCtx& context);
+                                          const IExchangeOut& output, WireFormat outputFormat,
+                                          const ExchangeCtx& context);
 
 PipelineViewResult run_pipeline_with_view(const std::string& inputPayload, WireFormat inputFormat,
                                           const IExchangeCodec& codec, const IExchangeTransform& transform,

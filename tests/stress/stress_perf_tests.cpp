@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "adapters/matching/lmdb_ecosystem_advisory_resolver.h"
 #include "rqp/security/exchange.h"
 #include "rqp/security/osv_core.h"
 #include "rqp/security/version_compare.h"
@@ -19,7 +20,7 @@ constexpr std::size_t kDefaultAliasLookups = 20000;
 constexpr std::size_t kDefaultVersionCompareOps = 50000;
 constexpr std::size_t kDefaultSbomPackages = 2000;
 
-}  // namespace
+} // namespace
 
 TEST_CASE("stress osv_parse_advisory throughput", "[stress][osv]") {
     const std::size_t operations = stress_env_size("RQP_STRESS_PARSE_OPS", kDefaultParseOps);
@@ -42,8 +43,7 @@ TEST_CASE("stress version_compare throughput", "[stress][version]") {
 
     StressStopwatch watch;
     for (std::size_t index = 0; index < operations; ++index) {
-        const bool left =
-            version_compare_values("1.2." + std::to_string(index % 10), "1.2.9") < 0;
+        const bool left = version_compare_values("1.2." + std::to_string(index % 10), "1.2.9") < 0;
         const bool right = version_compare_values("2.0." + std::to_string(index % 7), "1.99.0") > 0;
         REQUIRE((left || right));
     }
@@ -116,8 +116,9 @@ TEST_CASE("stress vulnerability matcher graph scan", "[stress][matcher]") {
     }
     REQUIRE(database.upsertAdvisories(advisories, 256));
 
+    LmdbEcosystemAdvisoryResolver advisoryResolver(config, static_cast<const IAdvisoryReader*>(&database));
     VulnerabilityMatcher matcher(nullptr, config);
-    matcher.setDatabase(&database);
+    matcher.setEcosystemAdvisoryResolver(&advisoryResolver);
 
     const Graph graph = stress_package_graph(packageCount);
 

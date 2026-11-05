@@ -53,5 +53,4 @@ std::optional<OsvMatchResult> osv_match_package(const OsvAdvisory& advisory, con
                                                 const std::string& name, const std::string& version,
                                                 const VersionComparatorSpec& comparator = {});
 std::optional<std::string> osv_first_fixed_version_for_package(const OsvAdvisory& advisory,
-                                                               const std::string& ecosystem,
-                                                               const std::string& name);
+                                                               const std::string& ecosystem, const std::string& name);

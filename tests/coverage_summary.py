@@ -11,18 +11,18 @@ from pathlib import Path
 TRACKED_PREFIX = "src/"
 
 DEFAULT_EXCLUDE_SUFFIXES = (
-    "src/pipe_helpers.cpp",
-    "src/security_process.cpp",
-    "src/validator_internal.h",
+    "src/adapters/infra/pipe_helpers.cpp",
+    "src/adapters/infra/security_process.cpp",
+    "src/validator/validator_internal.h",
     # Platform-specific home directory resolution (passwd/SUDO paths).
-    "src/security_paths.cpp",
+    "src/adapters/infra/security_paths.cpp",
     # libcurl/system certificate discovery paths.
-    "src/security_network.cpp",
+    "src/adapters/infra/security_network.cpp",
     # Network/OCI integration backends; exercised via file:// fixtures in gateway/sync tests.
-    "src/trivy_vulnerability_sync_service.cpp",
-    "src/vulnerability_sync_service.cpp",
-    "src/gh_advisory_vulnerability_sync_service.cpp",
-    "src/snyk_vulnerability_sync_service.cpp",
+    "src/adapters/sync/trivy/trivy_vulnerability_sync_service.cpp",
+    "src/adapters/sync/vulnerability_sync_service.cpp",
+    "src/adapters/sync/gh_advisory_vulnerability_sync_service.cpp",
+    "src/adapters/sync/snyk/snyk_vulnerability_sync_service.cpp",
 )
 
 

@@ -14,7 +14,7 @@ Standalone C++ library for vulnerability scanning, OSV database sync, security g
 - **Security gateway** — orchestrate sync, validation, and host callbacks
 - **Host hooks** — archive extraction, logging, and stdout redirection for embedding
 
-Public headers live under `include/rqp/security/`. The static library target is `reqpack_security_core`.
+Public headers live under `include/rqp/security/` (~27 integration-facing headers). Backend-specific sync and infra headers live under `src/` (see `ARCHITECTURE-CHANGELOG.md`). The static library target is `reqpack_security_core`.
 
 ## Requirements
 
@@ -95,6 +95,8 @@ Lint builds into `build/lint/` with Clang and `CMAKE_EXPORT_COMPILE_COMMANDS`. F
 | `snyk_csv_fuzzer` | Snyk CSV rows |
 | `trivy_helper_fuzzer` | Trivy DB helper output |
 | `version_compare_fuzzer` | Version range comparison |
+| `osv_json_fuzzer` | OSV JSON advisory parsing (libFuzzer) |
+| `cyclonedx_emit_fuzzer` | CycloneDX emit FFI boundary |
 
 Seed corpora: `tests/fuzz/corpus/`.
 
@@ -127,8 +129,13 @@ ReqPack keeps `security_bridge_tests.cpp` for config-mapping integration; all ot
 ## Project Layout
 
 ```
-include/rqp/security/     Public API headers
-src/                      Library implementation
+include/rqp/security/     Public API (~27 headers; see ARCHITECTURE-CHANGELOG.md)
+src/domain/               Matching, OSV, policy, version (I/O-free)
+src/adapters/             LMDB, sync backends, HTTP, infra (internal headers under src/)
+src/app/                  scan_service, sync gateway runner, policy console
+src/gateway/              SecurityGatewayService
+src/validator/            Validator
+src/exchange/             Document pipeline + transforms
 tests/unit/               Standalone unit tests (Catch2)
 tests/cpp/                Shared test main and helpers
 tests/fuzz/               libFuzzer targets + seed corpora

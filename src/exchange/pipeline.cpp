@@ -1,9 +1,8 @@
 #include "rqp/security/exchange.h"
 
-PipelineResult run_pipeline(
-    const std::string& inputPayload, WireFormat inputFormat, const IExchangeIn& input,
-    const IExchangeTransform& transform, const IExchangeOut& output,
-    WireFormat outputFormat, const ExchangeCtx& context) {
+PipelineResult run_pipeline(const std::string& inputPayload, WireFormat inputFormat, const IExchangeIn& input,
+                            const IExchangeTransform& transform, const IExchangeOut& output, WireFormat outputFormat,
+                            const ExchangeCtx& context) {
     PipelineResult pipelineResult;
 
     const AcceptResult accepted = input.accept(inputPayload, inputFormat, context);
@@ -24,10 +23,8 @@ PipelineResult run_pipeline(
     return pipelineResult;
 }
 
-PipelineResult run_pipeline(
-    const std::string& inputPayload, WireFormat inputFormat, const IExchangeCodec& codec,
-    const IExchangeTransform& transform, WireFormat outputFormat,
-    const ExchangeCtx& context) {
+PipelineResult run_pipeline(const std::string& inputPayload, WireFormat inputFormat, const IExchangeCodec& codec,
+                            const IExchangeTransform& transform, WireFormat outputFormat, const ExchangeCtx& context) {
     return run_pipeline(inputPayload, inputFormat, codec, transform, codec, outputFormat, context);
 }
 
@@ -47,11 +44,9 @@ WireFormat wire_format_from_name(const std::string& name) {
     return WireFormat::AUTO;
 }
 
-PipelineResult transform_inventory(const std::string& inputPayload,
-                                                           WireFormat inputFormat,
-                                                           const IExchangeTransform& transform,
-                                                           WireFormat outputFormat,
-                                                           const ExchangeCtx& context) {
+PipelineResult transform_inventory(const std::string& inputPayload, WireFormat inputFormat,
+                                   const IExchangeTransform& transform, WireFormat outputFormat,
+                                   const ExchangeCtx& context) {
     const auto codec = create_codec(ExchangeKind::INVENTORY);
     if (codec == nullptr) {
         return PipelineResult{.error = "inventory document codec is unavailable"};
@@ -59,10 +54,8 @@ PipelineResult transform_inventory(const std::string& inputPayload,
     return run_pipeline(inputPayload, inputFormat, *codec, transform, outputFormat, context);
 }
 
-PipelineResult transform_inventory(const std::string& inputPayload,
-                                                           WireFormat inputFormat,
-                                                           WireFormat outputFormat,
-                                                           const ExchangeCtx& context) {
+PipelineResult transform_inventory(const std::string& inputPayload, WireFormat inputFormat, WireFormat outputFormat,
+                                   const ExchangeCtx& context) {
     IdentityTransform identity;
     return transform_inventory(inputPayload, inputFormat, identity, outputFormat, context);
 }

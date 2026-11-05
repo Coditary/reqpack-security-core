@@ -21,7 +21,8 @@ struct SbomImportResult {
     std::string detectedFormat;
 };
 
-SbomImportResult import_sbom_from_json(const std::string& json, const SecuritySettings& config = default_security_settings(),
+SbomImportResult import_sbom_from_json(const std::string& json,
+                                       const SecuritySettings& config = default_security_settings(),
                                        SbomInventoryFormat format = SbomInventoryFormat::AUTO);
 
 SbomImportResult import_sbom_from_path(const std::filesystem::path& path,

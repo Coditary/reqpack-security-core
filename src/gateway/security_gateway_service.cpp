@@ -1,5 +1,7 @@
 #include "rqp/security/security_gateway_service.h"
+#include "app/sync_gateway_backend_run.h"
 
+#include "ports/internal_ports.h"
 #include "rqp/security/security_log.h"
 #include "rqp/security/security_paths.h"
 #include "rqp/security/sync_backend_registry.h"
@@ -191,7 +193,7 @@ std::vector<ValidationFinding> SecurityGatewayService::ensureEcosystemsReady(con
     bool anySuccess = false;
 
     for (const std::string& backendId : backends) {
-        const SyncBackendRegistration* backend = find_sync_backend(backendId);
+        const ISyncBackend* backend = find_sync_backend(backendId);
         if (backend == nullptr) {
             findings.push_back(ValidationFinding{
                 .kind = "sync_warning",
@@ -204,22 +206,10 @@ std::vector<ValidationFinding> SecurityGatewayService::ensureEcosystemsReady(con
         }
 
         SecuritySettings backendConfig = this->config;
-        if (backend->mergeGatewayBackendConfig) {
-            backend->mergeGatewayBackendConfig(backendConfig, this->config, backendId);
-        }
-        if (forceRefresh && backend->applyForceRefresh) {
-            backend->applyForceRefresh(backendConfig, backendId);
-        }
 
-        if (backend->scope == SyncBackendScope::MultiEcosystem) {
-            SyncBackendContext ctx{
-                .database = nullptr,
-                .metadataProvider = this->metadataProvider,
-                .config = backendConfig,
-                .ecosystems = ecosystems,
-                .forceRefresh = forceRefresh,
-            };
-            const std::vector<ValidationFinding> backendFindings = backend->run(ctx);
+        if (backend->scope() == SyncBackendScope::MultiEcosystem) {
+            const std::vector<ValidationFinding> backendFindings = run_registered_sync_backend(
+                backendId, nullptr, this->metadataProvider, backendConfig, ecosystems, forceRefresh);
             if (!findings_contain_sync_error(backendFindings)) {
                 anySuccess = true;
             }
@@ -233,14 +223,8 @@ std::vector<ValidationFinding> SecurityGatewayService::ensureEcosystemsReady(con
             ecosystemConfig.security.osvDatabasePath = package_index_path_for_ecosystem(backendConfig, ecosystem);
             VulnerabilityDatabase database(ecosystemConfig);
 
-            SyncBackendContext ctx{
-                .database = &database,
-                .metadataProvider = this->metadataProvider,
-                .config = ecosystemConfig,
-                .ecosystems = {ecosystem},
-                .forceRefresh = forceRefresh,
-            };
-            const std::vector<ValidationFinding> syncFindings = backend->run(ctx);
+            const std::vector<ValidationFinding> syncFindings = run_registered_sync_backend(
+                backendId, &database, this->metadataProvider, ecosystemConfig, {ecosystem}, forceRefresh);
             if (!findings_contain_sync_error(syncFindings)) {
                 anySuccess = true;
             }
@@ -280,9 +264,8 @@ SecurityGatewayService::executeGatewayRequest(ActionType action, const std::stri
     const std::set<std::string> backends = this->resolveGatewayBackends(gatewayName);
     bool allowRawGatewayEcosystems = backends.size() == 1;
     if (allowRawGatewayEcosystems) {
-        const SyncBackendRegistration* backend = find_sync_backend(*backends.begin());
-        allowRawGatewayEcosystems =
-            backend != nullptr && backend->allowsRawPackageNamesAsEcosystem;
+        const ISyncBackend* backend = find_sync_backend(*backends.begin());
+        allowRawGatewayEcosystems = backend != nullptr && backend->allowsRawPackageNamesAsEcosystem();
     } else {
         allowRawGatewayEcosystems = false;
     }

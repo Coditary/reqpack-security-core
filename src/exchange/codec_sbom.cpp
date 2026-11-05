@@ -1,6 +1,6 @@
-#include "rqp/security/sbom_inventory.h"
-#include "rqp/security/exchange.h"
 #include "rqp/security/cyclonedx.h"
+#include "rqp/security/exchange.h"
+#include "rqp/security/sbom_inventory.h"
 
 #include "detail/sync_common.h"
 
@@ -187,11 +187,9 @@ class SbomCodec : public IExchangeCodec {
         return ExchangeKind::INVENTORY;
     }
 
-    AcceptResult accept(const std::string& payload, WireFormat format,
-                                        const ExchangeCtx& context) const override {
+    AcceptResult accept(const std::string& payload, WireFormat format, const ExchangeCtx& context) const override {
         AcceptResult result;
-        const SbomImportResult imported =
-            import_sbom_from_json(payload, context.settings, to_inventory_format(format));
+        const SbomImportResult imported = import_sbom_from_json(payload, context.settings, to_inventory_format(format));
         for (const SbomImportWarning& warning : imported.warnings) {
             result.warnings.push_back(warning.message);
         }
@@ -205,10 +203,8 @@ class SbomCodec : public IExchangeCodec {
         return result;
     }
 
-    virtual EmitResult emit(const ExchangeDoc& document, WireFormat format,
-                                            const ExchangeCtx& context) const override {
-        const WireFormat resolved =
-            format == WireFormat::AUTO ? resolve_auto_output_format(document) : format;
+    virtual EmitResult emit(const ExchangeDoc& document, WireFormat format, const ExchangeCtx& context) const override {
+        const WireFormat resolved = format == WireFormat::AUTO ? resolve_auto_output_format(document) : format;
         switch (resolved) {
         case WireFormat::CYCLONEDX:
             return emit_cyclonedx(document, context);
@@ -231,8 +227,7 @@ class AuditCodec final : public SbomCodec {
         return ExchangeKind::AUDIT_REPORT;
     }
 
-    EmitResult emit(const ExchangeDoc& document, WireFormat format,
-                                    const ExchangeCtx& context) const override {
+    EmitResult emit(const ExchangeDoc& document, WireFormat format, const ExchangeCtx& context) const override {
         (void)context;
         if (format != WireFormat::REQPACK_AUDIT_JSON && format != WireFormat::AUTO) {
             return EmitResult{.error = "audit codec supports reqpack-audit-json only"};

@@ -15,8 +15,8 @@ TEST_CASE("security document pipeline round-trips reqpack sbom json", "[unit][se
     REQUIRE(codec != nullptr);
 
     IdentityTransform identity;
-    const PipelineResult result = run_pipeline(
-        input, WireFormat::REQPACK_SBOM_JSON, *codec, identity, WireFormat::REQPACK_SBOM_JSON, {});
+    const PipelineResult result =
+        run_pipeline(input, WireFormat::REQPACK_SBOM_JSON, *codec, identity, WireFormat::REQPACK_SBOM_JSON, {});
 
     REQUIRE_FALSE(result.error.has_value());
     CHECK(result.payload.find("\"system\": \"apt\"") != std::string::npos);
@@ -39,8 +39,8 @@ TEST_CASE("security document pipeline converts cyclonedx to reqpack sbom json", 
     const auto codec = create_codec(ExchangeKind::INVENTORY);
     IdentityTransform identity;
 
-    const PipelineResult result = run_pipeline(
-        input, WireFormat::AUTO, *codec, identity, WireFormat::REQPACK_SBOM_JSON, {});
+    const PipelineResult result =
+        run_pipeline(input, WireFormat::AUTO, *codec, identity, WireFormat::REQPACK_SBOM_JSON, {});
 
     REQUIRE_FALSE(result.error.has_value());
     CHECK(result.payload.find("\"system\": \"npm\"") != std::string::npos);
@@ -54,8 +54,7 @@ TEST_CASE("decode inventory to envelope exposes structured packages", "[unit][se
         ]
     })";
 
-    const DecodeResult decoded =
-        decode_to_view(input, WireFormat::REQPACK_SBOM_JSON);
+    const DecodeResult decoded = decode_to_view(input, WireFormat::REQPACK_SBOM_JSON);
     REQUIRE_FALSE(decoded.error.has_value());
     REQUIRE(decoded.view.packages.size() == 1);
     CHECK(decoded.view.packages.front().ref == "npm:left-pad@1.0.0");
@@ -85,9 +84,8 @@ TEST_CASE("security document pipeline emits audit json after vulnerability scan 
     const auto outputAdapter = create_out(ExchangeKind::AUDIT_REPORT);
     VulnScanTransform scanTransform(context);
 
-    const PipelineResult result =
-        run_pipeline(input, WireFormat::REQPACK_SBOM_JSON, *inputAdapter, scanTransform,
-                                       *outputAdapter, WireFormat::REQPACK_AUDIT_JSON, context);
+    const PipelineResult result = run_pipeline(input, WireFormat::REQPACK_SBOM_JSON, *inputAdapter, scanTransform,
+                                               *outputAdapter, WireFormat::REQPACK_AUDIT_JSON, context);
 
     REQUIRE_FALSE(result.error.has_value());
     CHECK(result.payload.find("\"findings\"") != std::string::npos);

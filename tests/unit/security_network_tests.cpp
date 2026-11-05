@@ -2,7 +2,7 @@
 
 #include <curl/curl.h>
 
-#include "rqp/security/security_network.h"
+#include "infra/security_network.h"
 #include "test_helpers.h"
 
 TEST_CASE("security network resolves ca bundle from env or system paths", "[unit][security_network]") {

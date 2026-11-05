@@ -117,8 +117,7 @@ ExchangeView doc_to_view(const ExchangeDoc& document, WireFormat sourceFormat, c
     ExchangeView envelope;
     envelope.sourceFormat = sourceFormat;
     envelope.detectedFormat = document.detectedFormat;
-    envelope.kind =
-        document.findings.empty() ? PayloadKind::INVENTORY : PayloadKind::AUDIT_REPORT;
+    envelope.kind = document.findings.empty() ? PayloadKind::INVENTORY : PayloadKind::AUDIT_REPORT;
 
     const std::vector<Graph::vertex_descriptor> vertices = ordered_vertices(document.graph);
     for (const Graph::vertex_descriptor vertex : vertices) {
@@ -129,17 +128,13 @@ ExchangeView doc_to_view(const ExchangeDoc& document, WireFormat sourceFormat, c
     return envelope;
 }
 
-DecodeResult decode_to_view(const std::string& inputPayload,
-                                                          WireFormat inputFormat,
-                                                          const ExchangeCtx& context) {
+DecodeResult decode_to_view(const std::string& inputPayload, WireFormat inputFormat, const ExchangeCtx& context) {
     IdentityTransform identity;
     return decode_to_view(inputPayload, inputFormat, identity, context);
 }
 
-DecodeResult decode_to_view(const std::string& inputPayload,
-                                                          WireFormat inputFormat,
-                                                          const IExchangeTransform& transform,
-                                                          const ExchangeCtx& context) {
+DecodeResult decode_to_view(const std::string& inputPayload, WireFormat inputFormat,
+                            const IExchangeTransform& transform, const ExchangeCtx& context) {
     DecodeResult result;
     const auto inputAdapter = create_in(ExchangeKind::INVENTORY);
     if (inputAdapter == nullptr) {
@@ -160,18 +155,17 @@ DecodeResult decode_to_view(const std::string& inputPayload,
     return result;
 }
 
-PipelineViewResult run_pipeline_with_view(
-    const std::string& inputPayload, WireFormat inputFormat, const IExchangeCodec& codec,
-    const IExchangeTransform& transform, WireFormat outputFormat,
-    const ExchangeCtx& context) {
+PipelineViewResult run_pipeline_with_view(const std::string& inputPayload, WireFormat inputFormat,
+                                          const IExchangeCodec& codec, const IExchangeTransform& transform,
+                                          WireFormat outputFormat, const ExchangeCtx& context) {
     return run_pipeline_with_view(inputPayload, inputFormat, static_cast<const IExchangeIn&>(codec), transform,
                                   static_cast<const IExchangeOut&>(codec), outputFormat, context);
 }
 
-PipelineViewResult run_pipeline_with_view(
-    const std::string& inputPayload, WireFormat inputFormat, const IExchangeIn& input,
-    const IExchangeTransform& transform, const IExchangeOut& output,
-    WireFormat outputFormat, const ExchangeCtx& context) {
+PipelineViewResult run_pipeline_with_view(const std::string& inputPayload, WireFormat inputFormat,
+                                          const IExchangeIn& input, const IExchangeTransform& transform,
+                                          const IExchangeOut& output, WireFormat outputFormat,
+                                          const ExchangeCtx& context) {
     PipelineViewResult combined;
     const AcceptResult accepted = input.accept(inputPayload, inputFormat, context);
     combined.wire.warnings = accepted.warnings;
@@ -195,13 +189,12 @@ PipelineViewResult run_pipeline_with_view(
     return combined;
 }
 
-PipelineViewResult transform_inventory_with_view(
-    const std::string& inputPayload, WireFormat inputFormat, const IExchangeTransform& transform,
-    WireFormat outputFormat, const ExchangeCtx& context) {
+PipelineViewResult transform_inventory_with_view(const std::string& inputPayload, WireFormat inputFormat,
+                                                 const IExchangeTransform& transform, WireFormat outputFormat,
+                                                 const ExchangeCtx& context) {
     const auto codec = create_codec(ExchangeKind::INVENTORY);
     if (codec == nullptr) {
-        return PipelineViewResult{
-            .wire = PipelineResult{.error = "inventory document codec is unavailable"}};
+        return PipelineViewResult{.wire = PipelineResult{.error = "inventory document codec is unavailable"}};
     }
     return run_pipeline_with_view(inputPayload, inputFormat, *codec, transform, outputFormat, context);
 }

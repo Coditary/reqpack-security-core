@@ -82,81 +82,126 @@ if(NOT TARGET lmdb)
     target_include_directories(lmdb PUBLIC ${lmdb_SOURCE_DIR}/libraries/liblmdb)
 endif()
 
-set(RQP_SECURITY_CORE_SOURCES
-    src/detail/sync_common.cpp
-    src/json_util.cpp
-    src/detail/sync_refresh.cpp
-    src/infra/security_paths.cpp
-    src/infra/security_log.cpp
-    src/infra/security_settings.cpp
-    src/infra/security_status.cpp
-    src/infra/security_network.cpp
-    src/infra/security_process.cpp
-    src/infra/pipe_helpers.cpp
-    src/version/version_compare.cpp
-    src/osv/osv_core.cpp
-    src/sync/sync_backend_registry.cpp
-    src/sync/sync_backend_support.cpp
-    src/sync/backends/register_builtin_backends.cpp
+set(RQP_SEC_DOMAIN_SOURCES
+    src/domain/json_util.cpp
+    src/domain/version/version_compare.cpp
+    src/domain/osv/osv_core.cpp
+    src/domain/policy/validator_core.cpp
+    src/domain/matching/vulnerability_matcher.cpp
+)
+
+set(RQP_SEC_APP_SOURCES
+    src/app/scan_service.cpp
+    src/app/policy_decision_console.cpp
+    src/app/sync_gateway_backend_run.cpp
     src/gateway/security_gateway_service.cpp
     src/validator/validator.cpp
     src/validator/validator_prepare.cpp
     src/validator/validator_prompt.cpp
-    src/validator/validator_core.cpp
-    src/database/vulnerability_database_storage.cpp
-    src/database/vulnerability_database.cpp
-    src/matching/vulnerability_matcher.cpp
-    src/sync/vulnerability_sync_service.cpp
+    src/validator/validator_disposition.cpp
     src/matching/sbom_inventory.cpp
     src/exchange/pipeline.cpp
     src/exchange/registry.cpp
     src/exchange/transform_identity.cpp
     src/exchange/transform_scan.cpp
+)
+
+set(RQP_SEC_ADAPTER_SOURCES
+    src/adapters/detail/sync_common.cpp
+    src/adapters/detail/sync_refresh.cpp
+    src/adapters/infra/security_paths.cpp
+    src/adapters/infra/security_log.cpp
+    src/adapters/infra/security_settings.cpp
+    src/adapters/infra/security_status.cpp
+    src/adapters/infra/security_network.cpp
+    src/adapters/infra/security_process.cpp
+    src/adapters/infra/pipe_helpers.cpp
+    src/adapters/infra/curl_http_client.cpp
+    src/adapters/infra/http_util.cpp
+    src/adapters/infra/http_download.cpp
+    src/adapters/infra/settings_archive_extractor.cpp
+    src/adapters/matching/lmdb_ecosystem_advisory_resolver.cpp
+    src/adapters/sync/sync_backend_registry.cpp
+    src/adapters/sync/sync_backend_support.cpp
+    src/adapters/sync/backends/register_builtin_backends.cpp
+    src/adapters/database/vulnerability_database_storage.cpp
+    src/adapters/database/vulnerability_database.cpp
+    src/adapters/sync/vulnerability_sync_service.cpp
     src/exchange/codec_sbom.cpp
     src/exchange/envelope.cpp
-    src/cyclonedx/cyclonedx_service.cpp
+    src/adapters/cyclonedx/cyclonedx_service.cpp
 )
 
 if(RQP_SECURITY_BACKEND_OSV)
-    list(APPEND RQP_SECURITY_CORE_SOURCES src/sync/backends/register_osv.cpp)
+    list(APPEND RQP_SEC_ADAPTER_SOURCES src/adapters/sync/backends/register_osv.cpp)
 else()
     message(FATAL_ERROR "RQP_SECURITY_BACKEND_OSV=OFF is not supported (OSV is the default data source)")
 endif()
 
 if(RQP_SECURITY_BACKEND_GH_ADVISORY)
-    list(APPEND RQP_SECURITY_CORE_SOURCES
-        src/sync/gh_advisory_vulnerability_sync_service.cpp
-        src/sync/backends/register_gh_advisory.cpp
+    list(APPEND RQP_SEC_ADAPTER_SOURCES
+        src/adapters/sync/gh_advisory_vulnerability_sync_service.cpp
+        src/adapters/sync/backends/register_gh_advisory.cpp
     )
     list(APPEND RQP_SECURITY_BACKEND_DEFINES RQP_SECURITY_HAVE_BACKEND_GH_ADVISORY)
 endif()
 
 if(RQP_SECURITY_BACKEND_SNYK)
-    list(APPEND RQP_SECURITY_CORE_SOURCES
-        src/sync/snyk/snyk_sync_http.cpp
-        src/sync/snyk/snyk_sync_csv.cpp
-        src/sync/snyk/snyk_sync_export.cpp
-        src/sync/snyk/snyk_sync_import.cpp
-        src/sync/snyk/snyk_vulnerability_sync_service.cpp
-        src/sync/backends/register_snyk.cpp
+    list(APPEND RQP_SEC_ADAPTER_SOURCES
+        src/adapters/sync/snyk/snyk_sync_http.cpp
+        src/adapters/sync/snyk/snyk_sync_csv.cpp
+        src/adapters/sync/snyk/snyk_sync_export.cpp
+        src/adapters/sync/snyk/snyk_sync_import.cpp
+        src/adapters/sync/snyk/snyk_vulnerability_sync_service.cpp
+        src/adapters/sync/backends/register_snyk.cpp
     )
     list(APPEND RQP_SECURITY_BACKEND_DEFINES RQP_SECURITY_HAVE_BACKEND_SNYK)
 endif()
 
 if(RQP_SECURITY_BACKEND_TRIVY)
-    list(APPEND RQP_SECURITY_CORE_SOURCES
-        src/sync/trivy/trivy_sync_misc.cpp
-        src/sync/trivy/trivy_sync_http.cpp
-        src/sync/trivy/trivy_sync_oci.cpp
-        src/sync/trivy/trivy_sync_runtime.cpp
-        src/sync/trivy/trivy_sync_import.cpp
-        src/sync/trivy/trivy_vulnerability_sync_service.cpp
-        src/sync/backends/register_trivy.cpp
+    list(APPEND RQP_SEC_ADAPTER_SOURCES
+        src/adapters/sync/trivy/trivy_sync_misc.cpp
+        src/adapters/sync/trivy/trivy_sync_http.cpp
+        src/adapters/sync/trivy/trivy_sync_oci.cpp
+        src/adapters/sync/trivy/trivy_sync_runtime.cpp
+        src/adapters/sync/trivy/trivy_sync_import.cpp
+        src/adapters/sync/trivy/trivy_vulnerability_sync_service.cpp
+        src/adapters/sync/backends/register_trivy.cpp
     )
     list(APPEND RQP_SECURITY_BACKEND_DEFINES RQP_SECURITY_HAVE_BACKEND_TRIVY)
 endif()
 
-add_library(reqpack_security_core STATIC ${RQP_SECURITY_CORE_SOURCES})
+add_library(rqp_sec_domain OBJECT ${RQP_SEC_DOMAIN_SOURCES})
+add_library(rqp_sec_adapters OBJECT ${RQP_SEC_ADAPTER_SOURCES})
+add_library(rqp_sec_app OBJECT ${RQP_SEC_APP_SOURCES})
+
+foreach(rqp_sec_layer IN ITEMS rqp_sec_domain rqp_sec_adapters rqp_sec_app)
+    target_include_directories(${rqp_sec_layer}
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/adapters
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/validator
+    )
+    target_compile_definitions(${rqp_sec_layer} PRIVATE ${RQP_SECURITY_BACKEND_DEFINES})
+    if(RQP_SECURITY_CORE_ENABLE_COVERAGE OR REQPACK_ENABLE_COVERAGE)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(${rqp_sec_layer} PRIVATE -O0 -g --coverage)
+            target_link_options(${rqp_sec_layer} PRIVATE --coverage)
+        endif()
+    endif()
+endforeach()
+
+target_link_libraries(rqp_sec_domain PUBLIC Boost::boost)
+target_link_libraries(rqp_sec_adapters PUBLIC Boost::boost rqp_sec_domain PRIVATE lmdb)
+target_link_libraries(rqp_sec_app PUBLIC Boost::boost rqp_sec_domain rqp_sec_adapters)
+
+add_library(reqpack_security_core STATIC
+    $<TARGET_OBJECTS:rqp_sec_domain>
+    $<TARGET_OBJECTS:rqp_sec_adapters>
+    $<TARGET_OBJECTS:rqp_sec_app>
+)
 add_library(ReqPack::SecurityCore ALIAS reqpack_security_core)
 
 target_include_directories(reqpack_security_core
@@ -165,6 +210,7 @@ target_include_directories(reqpack_security_core
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/adapters
         ${CMAKE_CURRENT_SOURCE_DIR}/src/validator
 )
 
@@ -223,6 +269,8 @@ if(RQP_SECURITY_CORE_BUILD_TESTS)
         tests/unit/vulnerability_sync_service_tests.cpp
         tests/unit/sbom_inventory_tests.cpp
         tests/unit/exchange_pipeline_tests.cpp
+        tests/unit/matcher_in_memory_tests.cpp
+        tests/unit/http_client_sync_port_tests.cpp
     )
 
     add_executable(security_core_unit_tests
@@ -232,6 +280,8 @@ if(RQP_SECURITY_CORE_BUILD_TESTS)
 
     target_include_directories(security_core_unit_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/adapters
     )
 
     target_link_libraries(security_core_unit_tests PRIVATE
@@ -262,6 +312,8 @@ if(RQP_SECURITY_CORE_BUILD_TESTS)
         target_include_directories(security_core_stress_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/stress
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/adapters
         )
 
         target_link_libraries(security_core_stress_tests PRIVATE
@@ -296,6 +348,8 @@ if(RQP_SECURITY_CORE_BUILD_FUZZERS)
 
     set(RQP_SECURITY_CORE_FUZZ_TARGETS
         osv_parse_fuzzer
+        osv_json_fuzzer
+        cyclonedx_emit_fuzzer
         snyk_csv_fuzzer
         trivy_helper_fuzzer
         version_compare_fuzzer
@@ -306,10 +360,15 @@ if(RQP_SECURITY_CORE_BUILD_FUZZERS)
     foreach(fuzzer IN LISTS RQP_SECURITY_CORE_FUZZ_TARGETS)
         add_executable(${fuzzer} tests/fuzz/${fuzzer}.cpp)
         target_link_libraries(${fuzzer} PRIVATE reqpack_security_core)
+        target_include_directories(${fuzzer} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/adapters
+        )
         target_compile_options(${fuzzer} PRIVATE ${RQP_SECURITY_FUZZ_FLAGS})
         target_link_options(${fuzzer} PRIVATE ${RQP_SECURITY_FUZZ_FLAGS})
 
-        set(corpus_dir ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/${fuzzer})
+        string(REGEX REPLACE "_fuzzer$" "" fuzzer_corpus "${fuzzer}")
+        set(corpus_dir ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/${fuzzer_corpus})
         if(EXISTS ${corpus_dir})
             add_test(
                 NAME security_fuzz_${fuzzer}

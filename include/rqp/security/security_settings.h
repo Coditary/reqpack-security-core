@@ -5,6 +5,8 @@
 
 #include <string>
 
+class IPolicyDecisionHandler;
+
 struct SecurityNetworkConfig {
     long connectTimeoutSeconds{30};
     long requestTimeoutSeconds{300};
@@ -26,6 +28,8 @@ struct SecuritySettings {
     SecurityInteractionConfig interaction;
     SecurityReportConfig reports;
     SecurityArchiveConfig archive;
+    /// When null, Validator uses ConsolePromptDecisionHandler for Prompt disposition.
+    IPolicyDecisionHandler* policyDecisionHandler{nullptr};
 };
 
 SecuritySettings default_security_settings();

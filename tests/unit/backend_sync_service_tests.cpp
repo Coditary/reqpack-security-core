@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
-#include "rqp/security/snyk_vulnerability_sync_service.h"
-#include "rqp/security/trivy_vulnerability_sync_service.h"
 #include "rqp/security/vulnerability_database.h"
+#include "sync/snyk/snyk_vulnerability_sync_service.h"
+#include "sync/trivy/trivy_vulnerability_sync_service.h"
 #include "test_helpers.h"
 
 TEST_CASE("snyk sync service reports missing backend configuration", "[unit][snyk][sync]") {

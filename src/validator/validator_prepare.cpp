@@ -1,5 +1,8 @@
 #include "validator_internal.h"
 
+#include "rqp/security/engine.h"
+#include "rqp/security/osv_core.h"
+
 #include <boost/graph/graph_traits.hpp>
 
 #include <set>
@@ -32,10 +35,8 @@ std::vector<ValidationFinding> Validator::prepareSecurityData(const Graph& graph
 }
 
 std::vector<ValidationFinding> Validator::scanGraph(const Graph& graph) const {
-	VulnerabilityMatcher matcher = this->matcher;
-	matcher.setDatabase(&this->database);
-	matcher.setAdvisories(this->loadAdvisories());
-	return matcher.matchGraph(graph);
+	const std::vector<OsvAdvisory> overlay = this->loadAdvisories();
+	return rqp::security::scan_graph(graph, &this->database, overlay, this->metadataProvider, this->config);
 }
 
 std::vector<OsvAdvisory> Validator::loadAdvisories() const {

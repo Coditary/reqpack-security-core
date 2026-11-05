@@ -1,5 +1,5 @@
 .PHONY: all build test test-unit clean coverage-build test-coverage \
-	format format-check lint lint-build fuzz fuzz-build qa
+	format format-check lint lint-build fuzz fuzz-build qa test-ci
 
 NPROC := $(shell command -v nproc >/dev/null 2>&1 && nproc || sysctl -n hw.ncpu 2>/dev/null || echo 2)
 JOBS := $(shell expr $(NPROC) / 4)
@@ -11,6 +11,7 @@ BADGE_JSON := .github/badges/coverage.json
 CLANGXX ?= clang++
 FUZZ_RUNS ?= 4096
 FUZZ_MAX_TIME ?= 20
+REQPACK_MONOREPO_ROOT ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 
 all: build
 
@@ -64,6 +65,9 @@ fuzz: fuzz-build
 	@FUZZ_RUNS=$(FUZZ_RUNS) FUZZ_MAX_TIME=$(FUZZ_MAX_TIME) ./scripts/run_fuzzers.sh $(FUZZ_BUILD_DIR)
 
 qa: format-check lint test fuzz
+
+test-ci:
+	@bash "$(REQPACK_MONOREPO_ROOT)/scripts/ci-local/run-act.sh" reqpack-security-core "$(REQPACK_MONOREPO_ROOT)"
 
 clean:
 	@rm -rf build $(COVERAGE_BUILD_DIR) $(LINT_BUILD_DIR) $(FUZZ_BUILD_DIR) coverage-summary.txt

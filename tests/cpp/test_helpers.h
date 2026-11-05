@@ -1,5 +1,8 @@
 #pragma once
 
+#include "adapters/infra/curl_http_client.h"
+#include "adapters/infra/settings_archive_extractor.h"
+#include "ports/internal_ports.h"
 #include "rqp/security/security_log.h"
 #include "rqp/security/security_settings.h"
 
@@ -7,10 +10,26 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+struct TestSyncIo {
+    std::unique_ptr<CurlHttpClient> http;
+    std::unique_ptr<SettingsArchiveExtractor> archive;
+    std::unique_ptr<SecurityIoPorts> ports;
+
+    explicit TestSyncIo(const SecuritySettings& settings)
+        : http(std::make_unique<CurlHttpClient>(settings)),
+          archive(std::make_unique<SettingsArchiveExtractor>(settings)),
+          ports(std::make_unique<SecurityIoPorts>(SecurityIoPorts{*this->http, *this->archive})) {}
+
+    [[nodiscard]] SecurityIoPorts& io() {
+        return *this->ports;
+    }
+};
 
 inline SecuritySettings test_security_settings() {
     SecuritySettings settings = default_security_settings();

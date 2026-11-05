@@ -98,8 +98,8 @@ std::string package_dedupe_key(const Package& package) {
     return package.system + '\n' + package.name + '\n' + package.version;
 }
 
-void append_package(Graph& graph, std::set<std::string>& seen, Package package, std::vector<SbomImportWarning>& warnings,
-                    const std::string& context) {
+void append_package(Graph& graph, std::set<std::string>& seen, Package package,
+                    std::vector<SbomImportWarning>& warnings, const std::string& context) {
     package.action = ActionType::AUDIT;
     if (package.system.empty() || package.name.empty()) {
         warnings.push_back(SbomImportWarning{.message = "skipped component with missing system or name: " + context});
