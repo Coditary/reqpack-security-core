@@ -48,8 +48,8 @@ constexpr const char* TRIVY_DB_LAYER_MEDIA_TYPE = "application/vnd.aquasec.trivy
 
 struct ProcessResult {
     int exitCode{1};
-    std::string stdoutText{};
-    std::string stderrText{};
+    std::string stdoutText;
+    std::string stderrText;
 };
 
 struct OciReference {

@@ -8,7 +8,7 @@
 
 std::vector<ValidationFinding>
 run_registered_sync_backend(const std::string& backendId, VulnerabilityDatabase* database,
-                            PluginMetadataProvider* metadataProvider, SecuritySettings config,
+                            PluginMetadataProvider* metadataProvider, const SecuritySettings& config,
                             const std::set<std::string>& ecosystems, const bool forceRefresh) {
     const ISyncBackend* backend = find_sync_backend(backendId);
     if (backend == nullptr) {

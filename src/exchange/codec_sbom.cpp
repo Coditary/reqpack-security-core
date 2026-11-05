@@ -181,7 +181,7 @@ WireFormat resolve_auto_output_format(const ExchangeDoc& document) {
 
 class SbomCodec : public IExchangeCodec {
   public:
-    virtual ~SbomCodec() = default;
+    ~SbomCodec() override = default;
 
     ExchangeKind kind() const override {
         return ExchangeKind::INVENTORY;
@@ -203,7 +203,7 @@ class SbomCodec : public IExchangeCodec {
         return result;
     }
 
-    virtual EmitResult emit(const ExchangeDoc& document, WireFormat format, const ExchangeCtx& context) const override {
+    EmitResult emit(const ExchangeDoc& document, WireFormat format, const ExchangeCtx& context) const override {
         const WireFormat resolved = format == WireFormat::AUTO ? resolve_auto_output_format(document) : format;
         switch (resolved) {
         case WireFormat::CYCLONEDX:

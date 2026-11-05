@@ -26,7 +26,7 @@ struct SyncOptions {
 struct HttpRequest {
     std::string url;
     std::string method{"GET"};
-    std::span<const std::pair<std::string, std::string>> headers{};
+    std::span<const std::pair<std::string, std::string>> headers;
     std::string body;
 };
 

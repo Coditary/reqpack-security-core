@@ -12,28 +12,28 @@ enum class OsvRefreshMode { MANUAL, PERIODIC, ALWAYS };
 
 struct SecurityGatewayConfig {
     bool enabled{true};
-    std::vector<std::string> backends{};
+    std::vector<std::string> backends;
 };
 
 struct SecurityBackendConfig {
     bool enabled{true};
-    std::string feedUrl{};
+    std::string feedUrl;
     OsvRefreshMode refreshMode{OsvRefreshMode::MANUAL};
     long refreshIntervalSeconds{24L * 60L * 60L};
-    std::string overlayPath{};
-    std::string apiBaseUrl{};
-    std::string apiVersion{};
-    std::string tokenEnv{};
-    std::string orgId{};
-    std::string groupId{};
-    std::string dataset{};
-    std::vector<std::string> dbRepositories{};
-    std::string helperPath{};
+    std::string overlayPath;
+    std::string apiBaseUrl;
+    std::string apiVersion;
+    std::string tokenEnv;
+    std::string orgId;
+    std::string groupId;
+    std::string dataset;
+    std::vector<std::string> dbRepositories;
+    std::string helperPath;
 };
 
 struct SecurityConfig {
     /// Optional preset applied after config load: dev | ci | strict (empty = custom).
-    std::string preset{};
+    std::string preset;
     bool enabled{false};
     bool autoFetch{true};
     bool requireThinLayer{false};
@@ -43,19 +43,19 @@ struct SecurityConfig {
     bool promptOnUnsafe{false};
     bool allowUnassigned{true};
     std::string defaultGateway{"security"};
-    std::string cachePath{};
-    std::string indexPath{};
-    std::string osvDatabasePath{};
+    std::string cachePath;
+    std::string indexPath;
+    std::string osvDatabasePath;
     std::string osvFeedUrl{"https://storage.googleapis.com/osv-vulnerabilities"};
     OsvRefreshMode osvRefreshMode{OsvRefreshMode::MANUAL};
     long osvRefreshIntervalSeconds{24L * 60L * 60L};
-    std::string osvOverlayPath{};
-    std::vector<std::string> ignoreVulnerabilityIds{};
-    std::vector<std::string> allowVulnerabilityIds{};
-    std::map<std::string, std::string> ecosystemMap{};
-    std::map<std::string, std::string> osvEcosystemMap{};
-    std::map<std::string, SecurityGatewayConfig> gateways{};
-    std::map<std::string, SecurityBackendConfig> backends{};
+    std::string osvOverlayPath;
+    std::vector<std::string> ignoreVulnerabilityIds;
+    std::vector<std::string> allowVulnerabilityIds;
+    std::map<std::string, std::string> ecosystemMap;
+    std::map<std::string, std::string> osvEcosystemMap;
+    std::map<std::string, SecurityGatewayConfig> gateways;
+    std::map<std::string, SecurityBackendConfig> backends;
     UnsafeAction onUnresolvedVersion{UnsafeAction::CONTINUE};
     bool strictEcosystemMapping{false};
     bool includeWithdrawnInReport{false};

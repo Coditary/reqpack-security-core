@@ -10,7 +10,7 @@ Validator::Validator(PluginMetadataProvider* metadataProvider, const SecuritySet
 	  securityGateway(metadataProvider, config),
 	  matcher(metadataProvider, config) {}
 
-Validator::~Validator() {}
+Validator::~Validator() = default;
 
 Graph* Validator::validate(Graph *graph) {
 	this->lastFindings.clear();

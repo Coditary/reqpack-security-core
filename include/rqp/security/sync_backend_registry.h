@@ -34,7 +34,7 @@ struct SyncBackendContext {
     VulnerabilityDatabase* database{nullptr};
     PluginMetadataProvider* metadataProvider{nullptr};
     SecuritySettings config{};
-    std::set<std::string> ecosystems{};
+    std::set<std::string> ecosystems;
     bool forceRefresh{false};
     SecurityIoPorts* io{nullptr};
 };

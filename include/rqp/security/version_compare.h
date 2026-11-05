@@ -3,8 +3,8 @@
 #include <string>
 
 struct VersionComparatorSpec {
-    std::string profile{};
-    std::string tokenPattern{};
+    std::string profile;
+    std::string tokenPattern;
     bool caseInsensitive{true};
 };
 
