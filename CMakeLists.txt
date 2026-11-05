@@ -348,10 +348,16 @@ if(RQP_SECURITY_CORE_BUILD_FUZZERS)
 
     set(RQP_SECURITY_CORE_FUZZ_TARGETS
         osv_parse_fuzzer
-        osv_json_fuzzer
+        sbom_import_fuzzer
+        exchange_decode_fuzzer
         cyclonedx_emit_fuzzer
+        cyclonedx_parse_fuzzer
         snyk_csv_fuzzer
+        snyk_export_fuzzer
         trivy_helper_fuzzer
+        trivy_ndjson_fuzzer
+        trivy_metadata_fuzzer
+        trivy_oci_fuzzer
         version_compare_fuzzer
     )
 

@@ -91,12 +91,18 @@ Lint builds into `build/lint/` with Clang and `CMAKE_EXPORT_COMPILE_COMMANDS`. F
 
 | Fuzzer | Input focus |
 | --- | --- |
-| `osv_parse_fuzzer` | OSV JSON advisory parsing |
-| `snyk_csv_fuzzer` | Snyk CSV rows |
-| `trivy_helper_fuzzer` | Trivy DB helper output |
-| `version_compare_fuzzer` | Version range comparison |
-| `osv_json_fuzzer` | OSV JSON advisory parsing (libFuzzer) |
+| `osv_parse_fuzzer` | OSV JSON advisory parsing + matching |
+| `sbom_import_fuzzer` | CycloneDX / SPDX / ReqPack SBOM JSON import |
+| `exchange_decode_fuzzer` | Exchange decode (`decode_to_view`) |
 | `cyclonedx_emit_fuzzer` | CycloneDX emit FFI boundary |
+| `cyclonedx_parse_fuzzer` | CycloneDX inventory parse FFI boundary |
+| `snyk_csv_fuzzer` | Snyk CSV rows |
+| `snyk_export_fuzzer` | Snyk export CSV files |
+| `trivy_helper_fuzzer` | Trivy DB helper NDJSON line |
+| `trivy_ndjson_fuzzer` | Trivy helper multi-line output |
+| `trivy_metadata_fuzzer` | Trivy DB metadata JSON |
+| `trivy_oci_fuzzer` | Trivy OCI reference + WWW-Authenticate |
+| `version_compare_fuzzer` | Version range comparison |
 
 Seed corpora: `tests/fuzz/corpus/`.
 

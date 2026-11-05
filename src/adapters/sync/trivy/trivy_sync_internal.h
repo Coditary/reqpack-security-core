@@ -65,6 +65,9 @@ struct BearerChallenge {
     std::string scope;
 };
 
+std::optional<OciReference> parse_oci_reference(const std::string& value);
+std::optional<BearerChallenge> parse_bearer_challenge(const std::string& header);
+
 struct TrivyDbMetadata {
     std::string version;
 };

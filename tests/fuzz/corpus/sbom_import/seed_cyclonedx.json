@@ -1,0 +1,1 @@
+{"bomFormat":"CycloneDX","specVersion":"1.5","components":[{"type":"library","name":"react","version":"18.3.1","purl":"pkg:npm/react@18.3.1","properties":[{"name":"reqpack:system","value":"npm"}]}]}
